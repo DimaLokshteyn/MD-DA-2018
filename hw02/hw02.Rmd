@@ -1,0 +1,165 @@
+---
+title: "Домашняя работа №2"
+author: "Dmitrii Lokshtein"
+date: '9 октября 2018 г '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Исходные данные
+По адресу https://raw.githubusercontent.com/SergeyMirvoda/da2016/master/data/calif_penn_2011.csv можно получить набор данных, содержащий информацию о домовладениях в Калифорнии и Пенсильвании за 2011г. Информация сгруппированна по зонам переписи (Census tracts).
+
+##Загрузка и очистка данных
+
+```{r}
+data<-data.frame(read.csv("https://raw.githubusercontent.com/SergeyMirvoda/MD-DA-2018/master/data/calif_penn_2011.csv"))
+```
+Количество строк: `r nrow(data)`
+Количество столбцов: `r ncol(data)`
+```{r}
+colSums(apply(data,c(1,2), is.na))
+```
+Считает, сколько значений NA в каждом столбце датафрейма
+
+```{r}
+fixed<-na.omit(data)
+nrow(data)-nrow(fixed) #количество удаленный строк
+colSums(apply(fixed,c(1,2), is.na))
+```
+
+Ответ: Потерянных значений не найдено
+
+## Новые дома
+
+Переменная(колонка) Built_2005_or_later содержит данные о проценте домов, построенных с 2005 года. Постройте диаграмму рассеяния (scatterplot) медианы стоимости домов (переменная Median_house_value) относительно процента новых домов.
+```{r}
+plot(fixed$Median_house_value, fixed$Built_2005_or_later, main = "Диаграмма рассеяния медианы стоимости домов относительно процента домов, построенных с 2005 года", xlab = "Median_house_value", ylab = "Built_2005_or_later")
+```
+
+
+Постройте ещё два графика для каждого из штатов отдельно. Номер штата содержится в переменной (STATEFP), где Калифорния 6-й штат, а Пенсильвания 42.
+```{r}
+border<-match(42, fixed$STATEFP)
+
+plot(fixed$Median_house_value[1:border-1], fixed$Built_2005_or_later[1:border-1], main = "Диаграмма рассеяния медианы стоимости домов относительно процента домов, построенных с 2005 года", xlab = "Median_house_value", ylab = "Built_2005_or_later")
+
+plot(fixed$Median_house_value[border:10605], fixed$Built_2005_or_later[border:10605], main = "Диаграмма рассеяния медианы стоимости домов относительно процента домов, построенных с 2005 года", xlab = "Median_house_value", ylab = "Built_2005_or_later")
+```
+
+
+
+
+## Незанятые дома
+Уровень найма (vacancy rate) — доля домов, которые не были заняты. В данных содержатся колонки, содержащие общее количество домовладений и количество не занятых домовладений.
+
+```{r}
+fixed$vacancy.rate<-fixed$Vacant_units/fixed$Total_units
+min(fixed$vacancy.rate)
+max(fixed$vacancy.rate)
+mean(fixed$vacancy.rate)
+median(fixed$vacancy.rate)
+
+plot(fixed$vacancy.rate, fixed$Median_house_value, main = "Диаграмма уровня найма относительно 
+     медианы стоимости домов",xlab = "vacancy.rate", ylab = "Median_house_value")
+```
+Вывод: Из диаграммы видно, что чем выше медиана стоимости домов, тем ниже уровень найма
+
+## Корреляция
+Колонка COUNTYFP содержит числовой код округа внутри штата. Нас интересуют Butte County (округ 7 в Калифорнии), Santa Clara (округ 85 в Калифорнии) и York County (округ 133 в Пенсильвании).
+
+Объясните, что делает приведённый код и как именно он это делает.
+acc <- c()
+for (tract in 1:nrow(ca_pa)) {
+  if (ca_pa$STATEFP[tract] == 6) {
+    if (ca_pa$COUNTYFP[tract] == 1) {
+      acc <- c(acc, tract)
+    }
+  }
+}
+accmv <- c()
+for (tract in acc) {
+  accmv <- c(accmv, ca_pa[tract,10])
+}
+median(accmv)
+
+
+Ответ: 
+1. Создает вектор acc
+2. Сохраняет в него номера строк  1 округа Калифорнии.
+3. Сохраняет в вектор accmv медианы стоимости домов 1 округа Калифорнии.
+4.Считает медиану медиан стоимости домов  1 округа Калифорнии.
+
+Напишите другим способом в одну строку, то же самое, что делает нижеуказанный код. Способов получить тот же ответ множество, достаточно одного.
+
+```{r}
+median(data.fixed$Median_house_value[data.fixed$STATEFP == 6][data.fixed$COUNTYFP == 1], na.rm = TRUE)
+```
+
+Найдите средний процент построенных домовладений в округах (Butte County, Santa Clara, York County)
+
+```{r}
+California.STATEFP<- fixed$STATEFP == 6
+Pennsylvania.STATEFP<- fixed$STATEFP == 42
+BC.COUNTYFP<-fixed$COUNTYFP == 7
+SC.COUNTYFP<-fixed$COUNTYFP == 85
+YC.COUNTYFP<-fixed$COUNTYFP == 133
+California.total<-sum(fixed$Total_units[California.STATEFP])
+Pennsylvania.total<-sum(fixed$Total_units[Pennsylvania.STATEFP])
+mean(fixed$Total_units[California.STATEFP & BC.COUNTYFP]/California.total, na.rm = TRUE)
+mean(fixed$Total_units[California.STATEFP & SC.COUNTYFP]/California.total, na.rm = TRUE)
+mean(fixed$Total_units[Pennsylvania.STATEFP & YC.COUNTYFP]/Pennsylvania.total, na.rm = TRUE)
+```
+
+Функция cor рассчитывает коэффициент корреляции между двумя переменными. Рассчитайте корреляцию между медианы стоимости домовладений (Median_house_value) и процентом построенных домов (Built_2005_or_later):
+
+i. для всего набора данных
+```{r}
+cor(data.fixed$Median_house_value,data.fixed$Built_2005_or_later)
+```
+
+ii. для Калифорнии
+
+```{r}
+
+```
+
+iii. для Пенсильвании
+```{r}
+cor(fixed$Median_house_value[Pennsylvania.STATEFP],fixed$Built_2005_or_later[Pennsylvania.STATEFP])
+```
+
+iv. для округа Butte County
+```{r}
+cor(fixed$Median_house_value[California.STATEFP& BC.COUNTYFP],fixed$Built_2005_or_later[California.STATEFP & BC.COUNTYFP])
+```
+
+v. для округа Santa Clara
+```{r}
+cor(fixed$Median_house_value[California.STATEFP& SC.COUNTYFP],fixed$Built_2005_or_later[California.STATEFP & SC.COUNTYFP])
+```
+
+vi. для округа York County
+
+
+```{r}
+cor(fixed$Median_house_value[Pennsylvania.STATEFP& YC.COUNTYFP],fixed$Built_2005_or_later[Pennsylvania.STATEFP & YC.COUNTYFP])
+```
+
+Постройте три диаграммы медианы стоимости домовладений (Median_house_value) относительно медианы дохода (Median_household_income) для трёх округов. 
+```{r}
+plot(fixed$Median_house_value[California.STATEFP& BC.COUNTYFP],fixed$Built_2005_or_later[California.STATEFP & BC.COUNTYFP], 
+     main = "Диаграмма медианы стоимости домовладений относительно медианы дохода владельцев",
+     xlab = "Медиана стоимости домовладений", 
+     ylab = "Медиана дохода владельцев", col = "red")
+points(fixed$Median_house_value[California.STATEFP& SC.COUNTYFP],fixed$Built_2005_or_later[California.STATEFP & SC.COUNTYFP], col = "green")
+points(fixed$Median_house_value[Pennsylvania.STATEFP& YC.COUNTYFP],fixed$Built_2005_or_later[Pennsylvania.STATEFP & YC.COUNTYFP], col = "blue")
+```
+ 
+
+
+
+
+
