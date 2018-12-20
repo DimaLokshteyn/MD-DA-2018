@@ -1,0 +1,140 @@
+---
+title: "Лабораторная работа №4"
+author: "Dmitrii Lokshtein"
+date: '18 декабря 2018 г '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Пользуясь примером из лекции файл (5.0.R) проанализируйте данные о возрасте и физ. характеристиках молюсков
+
+```{r}
+data <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data", header=TRUE, sep=",")
+summary(data)
+colnames(data)
+colnames(data) <- c("sex", "length", "diameter", "height", 
+                "whole_weight", "shucked_weight",
+                "viscera_weight", "shell_weight", "rings")
+colnames(data)
+data$sex <- factor(c("Female", "Infant", "Male")[data$sex])
+par(mfrow=c(1,3)) 
+hist(data$diameter, main = "Диаметр, мм")
+hist(data$height, main = "Высота, мм")
+hist(data$whole_weight, main = "Полный вес, гр")
+#Видим ассиметрию https://en.wikipedia.org/wiki/Skewness
+#и выбросы (от них нужно избавиться)
+#Визулизируем возможные зависимости
+par(mfrow=c(1,2)) 
+plot(data$diameter, data$whole_weight,'p',main = "Зависимость веса от диаметра")
+plot(data$height, data$whole_weight,'p',main = "Зависимость веса от высоты")
+```
+##Построение линейных моделей
+```{r}
+linear_d_w<- lm(data$diameter ~ data$whole_weight)
+summary(linear_d_w)
+plot(linear_d_w)
+```
+```{r}
+linear_h_W <- lm(data$height ~ data$whole_weight)
+summary(linear_h_W)
+plot(linear_h_W)
+```
+```{r}
+linear_w_all <- lm(data$whole_weight ~ .,data=data)
+summary(linear_w_all)
+plot(linear_w_all)
+```
+##Избавление от выбросов
+```{r}
+data<-data[data$height<=0.18&data$height>0.08,]
+hist(data$height)
+```
+```{r}
+data<-data[data$diameter<=0.52&data$diameter>0.26,]
+hist(data$diameter)
+```
+```{r}
+data<-data[data$whole_weight<=1.4&data$whole_weight>0.2,]
+hist(data$whole_weight)
+```
+##Повторное построение моделей
+```{r}
+linear_d_w <- lm(data$diameter ~ data$whole_weight)
+summary(linear_d_w)
+plot(linear_d_w)
+```
+```{r}
+linear_h_W <- lm(data$height ~ data$whole_weight)
+summary(linear_h_W)
+plot(linear_h_W)
+```
+```{r}
+linear_w_all <- lm(data$whole_weight ~ .,data=data)
+summary(linear_w_all)
+plot(linear_w_all)
+```
+##Разделить массив данных на 2 случайные части
+```{r}
+firstPart <- data[seq(1, nrow(data), by=2),]
+secondPart<- data[-seq(1, nrow(data), by=2),]
+summary(firstPart)
+summary(secondPart)
+```
+##Спрогнозируем (функция predict) значения во второй части, используя модель 1
+```{r}
+first_model1 <- lm(firstPart$diameter ~ firstPart$whole_weight)
+summary(first_model1)
+```
+Predict
+```{r}
+predict1 <- predict(first_model1)
+cor(firstPart$whole_weight, predict1)
+plot(firstPart$whole_weight, predict1)
+```
+```{r}
+totalpredict1 <- predict(first_model1, secondPart)
+cor(secondPart$whole_weight, totalpredict1)
+plot(secondPart$whole_weight, totalpredict1)
+```
+Значение корреляции вышло `r cor(secondPart$whole_weight, totalpredict1)`, что показывает слабую связанность выбранных двух параметров
+##Спрогнозируем (функция predict) значения во второй части, используя модель 2
+```{r}
+first_model2 <- lm(firstPart$height ~ firstPart$whole_weight)
+summary(first_model2)
+```
+Predict
+```{r}
+predict2 <- predict(first_model2)
+cor(firstPart$whole_weight, predict2)
+plot(firstPart$whole_weight, predict2)
+```
+```{r}
+totalpredict2 <- predict(first_model2, secondPart)
+cor(secondPart$whole_weight, totalpredict2)
+plot(secondPart$whole_weight, totalpredict2)
+```
+Значение корреляции вышло `r cor(secondPart$whole_weight, totalpredict2)`, что показывает слабую связанность выбранных двух параметров 
+##Спрогнозируем (функция predict) значения во второй части, используя модель 3
+```{r}
+first_model3 <- lm(firstPart$whole_weight ~ .,data=firstPart)
+summary(first_model3)
+```
+Predict
+```{r}
+predict3 <- predict(first_model3)
+cor(firstPart$whole_weight, predict3)
+plot(firstPart$whole_weight, predict3)
+```
+```{r}
+totalpredict3 <- predict(first_model3, secondPart)
+cor(secondPart$whole_weight, totalpredict3)
+plot(secondPart$whole_weight, totalpredict3)
+```
+Значение корреляции вышло `r cor(secondPart$whole_weight, totalpredict3)`, что показывает наличие зависимости между исследуемыми параметрами
+
+
+
+
